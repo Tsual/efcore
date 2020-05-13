@@ -487,12 +487,21 @@ namespace Microsoft.Extensions.DependencyInjection
                 optionsLifetime = ServiceLifetime.Singleton;
             }
 
+            var proxyAttr = typeof(TContextImplementation).GetCustomAttribute<ProxyContextAttribute>();
+            if (proxyAttr != null && proxyAttr.FactoryType != null && typeof(IProxyContextFactory).IsAssignableFrom(proxyAttr.FactoryType))
+            {
+                serviceCollection.TryAdd(new ServiceDescriptor(proxyAttr.FactoryType, proxyAttr.FactoryType, contextLifetime));
+                serviceCollection.TryAdd(new ServiceDescriptor(typeof(TContextService), p => (p.GetService(proxyAttr.FactoryType) as IProxyContextFactory)?.ProxyService(), contextLifetime));
+            }
+
+
             if (optionsAction != null)
             {
                 CheckContextConstructors<TContextImplementation>();
             }
 
             AddCoreServices<TContextImplementation>(serviceCollection, optionsAction, optionsLifetime);
+
 
             serviceCollection.TryAdd(new ServiceDescriptor(typeof(TContextService), typeof(TContextImplementation), contextLifetime));
 
